@@ -1,4 +1,4 @@
-# Policy as Code
+# AI ML Governance Policy as Code
 
 AI/ML infrastructure governance using Sentinel and OPA Gatekeeper to enforce cost controls, security policies, and EU AI Act compliance at both the Terraform plan stage and Kubernetes admission time.
 
