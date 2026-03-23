@@ -1,63 +1,62 @@
-# AI/ML Governance with Policy-as-Code
+# Policy as Code
 
-Dual-layer policy enforcement for AI infrastructure: Sentinel blocks non-compliant Terraform plans before provisioning, while OPA Gatekeeper rejects ML deployments missing governance labels at the Kubernetes admission stage.
+AI/ML infrastructure governance using Sentinel and OPA Gatekeeper to enforce cost controls, security policies, and EU AI Act compliance at both the Terraform plan stage and Kubernetes admission time.
 
 ## Overview
 
-Organisations deploying ML models face a governance gap—anyone with cluster access can deploy expensive GPU workloads or push untracked models to production. Without controls, a single p3.8xlarge instance could run up £8,800/month, and untraceable model versions make rollbacks impossible.
+Organisations deploying AI workloads face a real problem: a single unapproved GPU instance can rack up thousands in monthly compute costs, and untracked model deployments create compliance nightmares under frameworks like the EU AI Act. This project implements a two-layer policy enforcement architecture that catches violations before they ever reach production.
 
-This project implements policy-as-code at two enforcement points. HashiCorp Sentinel integrates with HCP Terraform to evaluate infrastructure plans before any resources are created. Policies block GPU instances without explicit approval, enforce mandatory tagging for cost attribution (ML-Team, Model-Type, Owner), and cap monthly spend at configurable thresholds. At the Kubernetes layer, OPA Gatekeeper admission webhooks reject any Deployment lacking model-version and ml-team labels, and require production ML workloads to reference an approved model registry (MLflow, Kubeflow, or SageMaker).
+The first layer uses HashiCorp Sentinel to gate Terraform plans — blocking unapproved GPU instances, enforcing mandatory resource tagging for cost attribution, and capping monthly infrastructure spend. The second layer uses OPA Gatekeeper as a Kubernetes admission controller, ensuring every ML model deployment carries proper version tracking, team attribution, and model registry references before it's admitted to the cluster.
 
-The infrastructure deploys an EKS cluster with encryption-at-rest for secrets, VPC flow logs for audit trails, and an S3 bucket with versioning enabled for model artifact storage—demonstrating that governance isn't bolted on but designed into the platform from the start.
+The underlying infrastructure provisions an EKS cluster with KMS-encrypted secrets, a versioned S3 bucket for model artifacts, and a VPC with flow logging — all tagged for ML cost allocation across multiple teams.
 
 ## Architecture
 
-![Cloud Architecture](screenshots/cloud-architecture.png)
+![](screenshots/cloud-architecture.png)
 
-Terraform provisions the AWS infrastructure through HCP Terraform, where Sentinel policies evaluate every plan before apply. The policy set includes four policies: GPU instance control (hard-mandatory), AI resource tagging (hard-mandatory), spending limits (soft-mandatory), and model deployment rules (advisory).
-
-Once infrastructure exists, OPA Gatekeeper runs as a Kubernetes admission controller on the EKS cluster. Two ConstraintTemplates define the governance rules: `K8sRequiredLabels` enforces mandatory ML tracking labels, while `MLModelRegistry` requires production deployments to include a model-registry-url annotation. Any kubectl apply that fails these constraints is rejected before the pod is scheduled.
-
-The flow is: Developer commits Terraform → HCP Terraform runs plan → Sentinel evaluates → (pass/fail) → Infrastructure provisioned → Developer applies K8s manifest → OPA Gatekeeper evaluates → (pass/fail) → Workload deployed.
+Sentinel policies run at plan time inside Terraform Cloud, validating infrastructure changes against four policies (GPU controls, resource tagging, spending limits, and model deployment rules) before any AWS resources are provisioned. Once infrastructure is live, OPA Gatekeeper operates as an admission webhook on the EKS cluster, evaluating every Deployment and StatefulSet against constraint templates that enforce label requirements and model registry validation. This creates a defence-in-depth approach where policy violations are caught at two distinct stages of the deployment lifecycle.
 
 ## Tech Stack
 
-**Infrastructure**: AWS EKS, VPC with flow logs, KMS encryption, S3 with versioning  
-**Policy Enforcement**: HashiCorp Sentinel (Terraform plans), OPA Gatekeeper (Kubernetes admission)  
-**Platform**: HCP Terraform, Kubernetes 1.28  
-**Security**: Cluster encryption, IRSA, network segmentation for MLflow/TensorBoard ports  
+**Infrastructure**: AWS EKS, VPC, S3, KMS, Terraform
+
+**Policy Enforcement**: HashiCorp Sentinel (4 policies), OPA Gatekeeper (2 constraint templates + 2 constraints)
+
+**Compliance**: EU AI Act risk classification, mandatory ML governance labels, model registry validation
+
+**Cost Controls**: GPU instance restriction, per-team budget caps, automated spend limits
 
 ## Key Decisions
 
-- **Dual enforcement layers**: Sentinel catches infrastructure violations before provisioning (preventing costly mistakes), while OPA catches runtime violations at deployment (preventing governance drift). Neither alone provides complete coverage.
+- **Two-layer enforcement over single-layer**: Sentinel catches infrastructure-level violations (wrong instance types, missing tags) at plan time, while OPA catches workload-level violations (unregistered models, missing version labels) at deploy time. Neither layer alone covers both concerns.
 
-- **Hard-mandatory for cost controls**: GPU instance control and tagging policies use hard-mandatory enforcement because the cost of a violation (£2,000+/month) exceeds the inconvenience of blocking a legitimate deployment that needs fixing.
+- **Hard-mandatory vs. advisory enforcement levels**: GPU controls and tagging are hard-mandatory because violations have immediate financial or compliance impact. Model deployment rules are advisory to avoid blocking experimentation in non-production environments.
 
-- **EU AI Act compliance built-in**: Tags include AI-Risk-Level and Compliance-Review fields anticipating regulatory requirements. High-risk AI systems require documented risk assessments before deployment—enforced by policy, not process.
+- **KMS encryption for both EKS secrets and S3 model artifacts**: A single KMS key encrypts cluster secrets and model storage, simplifying key management while ensuring model IP is protected at rest across both storage layers.
 
-- **Model registry as deployment gate**: Production ML deployments must reference an approved registry URL. This prevents "works on my machine" model deployments and ensures every production model is versioned and reproducible.
+- **Cost-effective demo architecture**: Uses t3.medium instances with GPU node groups commented but fully defined, demonstrating production-ready GPU scaling patterns without incurring GPU costs.
 
 ## Screenshots
 
-![VCS provider configuration](screenshots/1.png)
+![](screenshots/1.png)
 
-![Policy set connected](screenshots/2.png)
+![](screenshots/2.png)
 
-![Infrastructure deployment](screenshots/3.png)
+![](screenshots/3.png)
 
-![Sentinel evaluation](screenshots/4.png)
+![](screenshots/4.png)
 
-![EKS cluster](screenshots/5.png)
+![](screenshots/5.png)
 
-![OPA blocking deployment](screenshots/6.png)
+![](screenshots/6.png)
 
-![OPA allowing deployment](screenshots/7.png)
+![](screenshots/7.png)
 
-![Model endpoint](screenshots/8.png)
+![](screenshots/8.png)
 
-![Platform components](screenshots/9.png)
+![](screenshots/9.png)
 
-![Infrastructure teardown](screenshots/10.png)
+![](screenshots/10.png)
 
 ## Author
 
