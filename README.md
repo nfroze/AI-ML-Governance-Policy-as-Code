@@ -40,7 +40,7 @@ Sentinel policies run at plan time inside Terraform Cloud, validating infrastruc
 
 **Terraform VCS Provider Configuration** — Initial setup linking the GitHub repository to Terraform Cloud. The configuration stores the OAuth token and webhook URLs required for automated policy enforcement on pull requests and merges.
 
-![](screenshots/terraform-vcs-provider-setup.png)
+![](screenshots/terraform-vcs-provider.png)
 
 **Policy Sets in Terraform Cloud** — The Sentinel policy set is connected to the workspace, configured to run on all plans. This is where the four governance policies are centrally managed and enforced across the infrastructure-as-code pipeline.
 
@@ -48,7 +48,7 @@ Sentinel policies run at plan time inside Terraform Cloud, validating infrastruc
 
 **Terraform Run with Sentinel Validation** — A successful Terraform plan that passed the Sentinel policy evaluation. The run shows plan completion, policy checks passed, and application of 75 new resources without changes or deletions to existing infrastructure.
 
-![](screenshots/terraform-sentinel-policies-passed.png)
+![](screenshots/terraform-sentinel-policies.png)
 
 **Sentinel Policy Evaluation Results** — Detailed breakdown of the four policies that executed during the Terraform plan. All policies passed, including AI Resource Governance (mandatory tagging), AI/ML Spending Control (cost limits), GPU Instance Control (preventing unauthorized GPU instances), and ML Model Deployment Governance (enforcing best practices).
 
@@ -60,11 +60,11 @@ Sentinel policies run at plan time inside Terraform Cloud, validating infrastruc
 
 **OPA Gatekeeper Blocking Invalid ML Deployment** — A deployment admission is denied by the OPA Gatekeeper webhook. The error shows missing mandatory labels ("model-version" and "ml-team") required for cost tracking, model versioning, and EU AI Act compliance. The policy enforces that all model deployments must carry proper governance metadata.
 
-![](screenshots/opa-gatekeeper-blocking-invalid-deployment.png)
+![](screenshots/opa-gatekeeper-rejection.png)
 
 **OPA Gatekeeper Allowing Valid ML Deployment** — A valid deployment is successfully created after proper governance labels are applied. The Sentiment Analyzer v2 deployment is admitted to the cluster, demonstrating that properly labelled ML workloads pass the admission control checks.
 
-![](screenshots/opa-gatekeeper-valid-deployment.png)
+![](screenshots/opa-gatekeeper-approval.png)
 
 **Cluster Ingress Confirming Kubernetes Deployment** — The Nginx welcome page served by the cluster ingress controller, confirming that the EKS cluster is deployed, operational, and accessible. This verifies the foundational infrastructure layer is running.
 
@@ -76,7 +76,7 @@ Sentinel policies run at plan time inside Terraform Cloud, validating infrastruc
 
 **Terraform Cloud Run History and Deployment Details** — The comprehensive run details showing the full lifecycle: plan generation (75 resources to add), Sentinel policy validation, and successful apply. The run was triggered by a GitHub push, demonstrating the complete GitOps workflow from version control to policy-driven infrastructure deployment.
 
-![](screenshots/terraform-run-history-detailed.png)
+![](screenshots/terraform-run-history.png)
 
 ## Author
 
